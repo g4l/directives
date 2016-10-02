@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html ng-app='mailBox'>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>ng-click && ng-if && ng-model && ng-bind</title>
+</head>
+
+<body>
+  <h3>ng-click && ng-if && ng-model && ng-bind</h3>
+
+  Введите имя: <input type="text" name="test" ng-model="name"> (ng-model="name")<br>
+  Введите имя: <input type="text" name="test1" ng-model="name"> (ng-model="name")
+  
+  <div ng-if="name">
+    Привет, <strong ng-bind="name"></strong> (ng-bind="name")
+  </div>
+  
+  <div ng-if="name">
+    Как дела, <strong ng-bind="name"></strong>? (ng-bind="name")
+  </div>
+  
+  <div>
+    <button ng-click="show = !show">Показать/Скрыть узел</button> (ng-click)
+    <div ng-if="show">Скрытый текст. Ваше имя: <strong ng-bind="name"></strong> (ng-bind="name")</div>
+  </div>
+  
+  <script>
+    // ng-click
+    
+    let elements = document.body.querySelectorAll('[ng-click]');
+  
+    for(let i = 0; i < elements.length; i++) {
+      let f = new Function('', elements[i].getAttribute("ng-click"));
+      elements[i].addEventListener('click', f); // вешаем обработчик
+    }
+    
+    // двустороннее связывание, ng-bind
+    
+    var scopeModels = {}; // объект для хранения названий моделей и их значений
+    
+    document.addEventListener('keyup', syncModelAndBind, true);
+    
+    function syncModelAndBind(e){
+      let model = e.target.getAttribute('ng-model');
+      if(model){ // если у элемента есть аттрибут ng-model
+        doSyncModelAndBind(e.target); // запускаем синхронизацию
+      }
+    }
+    
+    function doSyncModelAndBind(target, fullSync){ // если второй параметр true, то синхронизируем все значения, иначе только текущего input
+      let bindMap = {};
+      let bindEls = document.querySelectorAll('[ng-bind]');
+      let modelEls = document.querySelectorAll('[ng-model]');
+      let model;
+      
+      if(target){
+        model = model = target.getAttribute('ng-model');
+        scopeModels[model] = target.value; // сохраняем значение модели
+      }
+      
+      for(let i = 0; i < bindEls.length; i++){ // записываем в объект связь ng-model с ng-bind
+        let el = bindEls[i];
+        let model = el.getAttribute('ng-bind');
+       
+        if(!bindMap[model]){
+          bindMap[model] = [];
+        }
+        
+        bindMap[model].push(el);
+      }
+      
+      for(let i = 0; i < modelEls.length; i++){ // записываем закже элементы с ng-model для синхронизации
+        let el = modelEls[i];
+        let model = el.getAttribute('ng-model');
+       
+        if(!bindMap[model]){
+          bindMap[model] = [];
+        }
+        
+        bindMap[model].push(el);
+      }
+      
+      if(fullSync){ // полная синхронизация
+        for(modelName in bindMap){
+          bindMap[modelName].forEach(el => {
+            if(el.tagName === 'INPUT'){
+              if(el.value !== scopeModels[modelName]){ // если это не текущий элемент
+                el.value = scopeModels[modelName];
+              }
+            }else{
+              el.textContent = scopeModels[modelName];
+            }
+          });
+        }
+      }else{ // синхронизация только с текущей моделью
+        if(model && bindMap[model]){ // если такая модель есть, синхронизируем значения
+          bindMap[model].forEach(el => {
+            if(el.tagName === 'INPUT'){
+              if(el.value !== target.value){ // если это не текущий элемент
+                el.value = target.value;
+              }
+            }else{
+              el.textContent = target.value;
+            }
+          });
+        }
+      }
+    }
+    
+    // ng-if
+    
+    var show = false;
+    
+    var ifMap = {}; // scope для ng-if, в который будем записывать элементы, которые были удалены из dom
+    
+    function synсNgIf(){
+      let ifEls = document.querySelectorAll('[ng-if]');
+      
+      for(let i = 0; i < ifEls.length; i++){
+        let el = ifEls[i];
+        let param = el.getAttribute('ng-if');
+        let index = el.dataset.ngIfIndex;
+        let check;
+        
+        if(param.indexOf('(') !== -1){ // если в ng-if передали результат функции
+          let f = new Function('', 'return ' + param + ';');
+          check = f();
+        }else{
+          check = window[param] || scopeModels[param];
+        }
+        
+        if(check){ // если значение в ng-if истино
+          if(index !== undefined){ // если элемент нужно показать
+            let replaceEl = ifMap[param][index];
+            
+            el.parentNode.replaceChild(replaceEl, el); // заменяем пустой узел на исходный
+            doSyncModelAndBind(false, true); // синхронизируем, а то вдруг там есть узлы с ng-bind и ng-model
+            
+            delete ifMap[param][index]; // делаем элемент undefined (можно было бы и удалить, но оптимизатор отлично и с этим справится)
+          }
+        }else{
+          if(index == undefined){ // если элемент ещё не скрыт
+            if(!ifMap[param]){
+              ifMap[param] = [];
+            }
+            
+            ifMap[param].push(el);
+            
+            // создаём элемент для замены
+            let div = document.createElement('div');
+            div.hidden = true;
+            div.dataset.ngIfIndex = ifMap[param].length - 1; // записываем индекс исходного элемента, хранящегося в массиве
+            div.setAttribute("ng-if", param);
+            
+            el.parentNode.replaceChild(div, el); // заменяем на пустой элемент
+          }
+        }
+      }
+    }
+    
+    setInterval(synсNgIf, 100);
+  </script>
+</body>
+
+</html>
