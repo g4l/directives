@@ -13,15 +13,17 @@
   Введите имя: <input type="text" name="test1" ng-model="name"> (ng-model="name")
   
   <div ng-if="name">
+    (ng-if="name")<br>
     Привет, <strong ng-bind="name"></strong> (ng-bind="name")
   </div>
   
   <div ng-if="name">
+    (ng-if="name")<br>
     Как дела, <strong ng-bind="name"></strong>? (ng-bind="name")
   </div>
   
   <div>
-    <button ng-click="show = !show">Показать/Скрыть узел</button> (ng-click)
+    <button ng-click="show = !show">Показать/Скрыть узел с ng-if="show"</button> (ng-click="show = !show")
     <div ng-if="show">Скрытый текст. Ваше имя: <strong ng-bind="name"></strong> (ng-bind="name")</div>
   </div>
   
